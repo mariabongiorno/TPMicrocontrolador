@@ -11,7 +11,8 @@ data Microprocesador = Microprocesador {
 	mensajeError :: String 
 } deriving (Show)
 
-
+incrementoPC :: Microprocesador -> Microprocesador
+incrementoPC microprocesador = microprocesador {programCounter = programCounter microprocesador +1}
 
 --3.1 Pto1.2
 
@@ -30,33 +31,51 @@ at8086 = Microprocesador {memoria = [1..20], acumuladorA = 0, acumuladorB = 0, p
 --3.2 Pto2.1
 
 nop :: Microprocesador -> Microprocesador
-nop microprocesador = microprocesador {programCounter = incrementoPC programCounter microprocesador}
+nop = incrementoPC
 
 --3.3 Pto3.1
 
 lodv :: Int -> Microprocesador -> Microprocesador
-lodv val microprocesador = microprocesador { acumuladorA = val , programCounter = incrementoPC programCounter microprocesador }
+lodv val = incrementoPC.cargarAcumuladorA val
+
+cargarAcumuladorA :: Int -> Microprocesador -> Microprocesador
+cargarAcumuladorA val microprocesador = microprocesador { acumuladorA = val }
 
 swap :: Microprocesador -> Microprocesador
-swap microprocesador = microprocesador { acumuladorA = acumuladorB microprocesador, acumuladorB= acumuladorA microprocesador , programCounter = incrementoPC programCounter microprocesador}
+swap = incrementoPC.intercambioAcumuladores
+
+intercambioAcumuladores :: Microprocesador -> Microprocesador
+intercambioAcumuladores microprocesador = microprocesador { acumuladorA = acumuladorB microprocesador, acumuladorB= acumuladorA microprocesador}
 
 add :: Microprocesador -> Microprocesador
-add microprocesador = microprocesador  { acumuladorA = (acumuladorA microprocesador) + (acumuladorB microprocesador),  acumuladorB = 0 , programCounter = incrementoPC programCounter microprocesador}
+add = incrementoPC.sumaAcumuladoresEnA
+
+sumaAcumuladoresEnA :: Microprocesador -> Microprocesador
+sumaAcumuladoresEnA microprocesador = microprocesador  { acumuladorA = (acumuladorA microprocesador) + (acumuladorB microprocesador),  acumuladorB = 0}
 
 --3.4 Pto4.1
 
 divide :: Microprocesador -> Microprocesador
-divide microprocesador
-       |acumuladorB microprocesador /= 0 = microprocesador {acumuladorA = div (acumuladorA microprocesador) (acumuladorB microprocesador), acumuladorB = 0, programCounter = incrementoPC programCounter microprocesador, mensajeError = "" }
-       |otherwise  = microprocesador {acumuladorA = 0, programCounter = incrementoPC programCounter microprocesador, mensajeError = "DIVISION ES ZERO" } 
+divide = incrementoPC.divideAporB
+
+divideAporB :: Microprocesador -> Microprocesador
+divideAporB microprocesador
+       |acumuladorB microprocesador /= 0 = microprocesador {acumuladorA = div (acumuladorA microprocesador) (acumuladorB microprocesador), acumuladorB = 0, mensajeError = "" }
+       |otherwise  = microprocesador {acumuladorA = 0, mensajeError = "DIVISION ES ZERO" } 
   
 str :: Int -> Int -> Microprocesador -> Microprocesador
-str addr val microprocesador = microprocesador { memoria = (take (addr-1) (memoria microprocesador) ++ [val] ++ (drop addr (memoria microprocesador))) , programCounter = incrementoPC programCounter microprocesador}
+str addr val = incrementoPC.guardarValorEnMemoria addr val 
+
+guardarValorEnMemoria ::  Int -> Int -> Microprocesador -> Microprocesador
+guardarValorEnMemoria addr val microprocesador = microprocesador { memoria = (take (addr-1) (memoria microprocesador) ++ [val] ++ (drop addr (memoria microprocesador))) }
 
 lod :: Int -> Microprocesador -> Microprocesador
-lod addr microprocesador = microprocesador { acumuladorA= ((!!) (memoria microprocesador) (addr-1)) ,  programCounter = incrementoPC programCounter microprocesador}
+lod addr = incrementoPC.cargarMemoriaEnAcumuladorA addr
 
-incrementoPC pc constructor = pc constructor +1
+cargarMemoriaEnAcumuladorA :: Int -> Microprocesador -> Microprocesador
+cargarMemoriaEnAcumuladorA addr microprocesador = microprocesador { acumuladorA= ((!!) (memoria microprocesador) (addr-1))}
+
+
 
 --------------- CASOS DE PRUEBA ---------------
 
