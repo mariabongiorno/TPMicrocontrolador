@@ -5,11 +5,11 @@ import Text.Show.Functions
 
 -- MODIFICACIONES AL DATA PARA INCLUIR PROGRAMA
 
-type Programa = Microprocesador -> Microprocesador -- parte 2
+type Instrucciones = Microprocesador -> Microprocesador -- parte 2
 
 data Microprocesador = Microprocesador {
 	memoria :: [Int],
-	programa :: [Programa], -- parte 2
+	instrucciones :: [Instrucciones], -- parte 2 -- ISSUE
 	acumuladorA :: Int,
 	acumuladorB :: Int,
 	programCounter :: Int,
@@ -23,23 +23,23 @@ incrementoPC microprocesador = microprocesador {programCounter = programCounter 
 --3.1 Pto1.2
 
 {-xt8088 :: Microprocesador
-xt8088 = Microprocesador {memoria = [], programa = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}-}
+xt8088 = Microprocesador {memoria = [], instrucciones = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}-}
 
 xt8088 :: Microprocesador
-xt8088 = Microprocesador {memoria = replicate 1024 0, programa = [ ], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}
+xt8088 = Microprocesador {memoria = replicate 1024 0, instrucciones = [ ], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}
 
 fp20 :: Microprocesador
-fp20 = Microprocesador {memoria = [], programa = [], acumuladorA = 7, acumuladorB = 24, programCounter = 0, mensajeError = ""}
+fp20 = Microprocesador {memoria = [], instrucciones = [], acumuladorA = 7, acumuladorB = 24, programCounter = 0, mensajeError = ""}
 
 at8086 :: Microprocesador
-at8086 = Microprocesador {memoria = [1..20], programa = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}
+at8086 = Microprocesador {memoria = [1..20], instrucciones = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}
 
 
 -- MODELADOS PARTE 2
 
-microprocesadorMemoriaInf = Microprocesador {memoria = [0,0 ..], programa = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}
+microprocesadorMemoriaInf = Microprocesador {memoria = [0,0 ..], instrucciones = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""}
 
-microDesorden =  Microprocesador {memoria = [2,5,1,0,6,9], programa = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""} 
+microDesorden =  Microprocesador {memoria = [2,5,1,0,6,9], instrucciones = [], acumuladorA = 0, acumuladorB = 0, programCounter = 0, mensajeError = ""} 
 
 --3.2 Pto2.1
 
@@ -63,8 +63,11 @@ intercambioAcumuladores microprocesador = microprocesador { acumuladorA = acumul
 add :: Microprocesador -> Microprocesador
 add = incrementoPC.sumaAcumuladoresEnA
 
+ceroEnB :: Microprocesador -> Microprocesador
+ceroEnB microprocesador = microprocesador { acumuladorB = 0}
+
 sumaAcumuladoresEnA :: Microprocesador -> Microprocesador
-sumaAcumuladoresEnA microprocesador = microprocesador  { acumuladorA = (acumuladorA microprocesador) + (acumuladorB microprocesador),  acumuladorB = 0}
+sumaAcumuladoresEnA microprocesador = ceroEnB.cargarAcumuladorA (acumuladorA microprocesador + acumuladorB microprocesador) $ microprocesador --ISSUE
 
 --3.4 Pto4.1
 
@@ -86,47 +89,47 @@ lod :: Int -> Microprocesador -> Microprocesador
 lod addr = incrementoPC.cargarMemoriaEnAcumuladorA addr
 
 cargarMemoriaEnAcumuladorA :: Int -> Microprocesador -> Microprocesador
-cargarMemoriaEnAcumuladorA addr microprocesador = microprocesador { acumuladorA= ((!!) (memoria microprocesador) (addr-1))}
+cargarMemoriaEnAcumuladorA addr microprocesador = microprocesador { acumuladorA= ((memoria microprocesador) !! (addr-1))} --ISSUE
 
 
 -- programa que permite sumar 10 + 22  (PARTE2)
 
-diezMasVeintidos :: [Programa]
+diezMasVeintidos :: [Instrucciones]
 diezMasVeintidos = [add,lodv 22,swap,lodv 10]
 
 --   dividir 2 por 0 (PARTE2)
 
-divisionDosPorCero :: [Programa]
+divisionDosPorCero :: [Instrucciones]
 divisionDosPorCero = [divide,lod 1,swap,lod 2,str 2 0,str 1 2]
 
 -- Cargar programa al microprocesador -- parte2
 
-cargarProgramaAlMicro :: [Programa] -> Programa 
-cargarProgramaAlMicro programaNuevo microprocesador = microprocesador {programa = programaNuevo}
+cargarProgramaAlMicro :: [Instrucciones] -> Instrucciones 
+cargarProgramaAlMicro programaNuevo microprocesador = microprocesador {instrucciones = programaNuevo}
 
 -- Ejecutar programa del microprocesador -- parte 2 (con lista para poder frenar cuando hay error)
-ejecutarPrograma :: Programa
-ejecutarPrograma microprocesador = foldr ejecutarHastaError microprocesador (programa microprocesador)
+ejecutarPrograma :: Instrucciones
+ejecutarPrograma microprocesador = foldr ejecutarHastaError microprocesador (instrucciones microprocesador)
 
-ejecutarHastaError :: Programa -> Programa
+ejecutarHastaError :: Instrucciones -> Instrucciones
 ejecutarHastaError instruccion microprocesador
 	| noHayError microprocesador = instruccion microprocesador
 	|otherwise = microprocesador
 
 noHayError :: Microprocesador -> Bool
-noHayError microprocesador = mensajeError microprocesador == ""
+noHayError microprocesador = null (mensajeError microprocesador) --ISSUE 
 
 -- instruccion IFNZ (PARTE2)
-ifnz :: [Programa] -> Microprocesador -> Microprocesador
+ifnz :: [Instrucciones] -> Microprocesador -> Microprocesador
 ifnz instrucciones microprocesador
    | acumuladorA microprocesador /= 0 = ejecutarPrograma.cargarProgramaAlMicro  instrucciones $ microprocesador
    | otherwise = microprocesador
 
 -- Depurar Programa (PARTE2)
-depurar :: [Programa] -> Microprocesador -> [Programa] -- filtra la lista de instrucciones y deja solo las utiles
+depurar :: [Instrucciones] -> Microprocesador -> [Instrucciones] -- filtra la lista de instrucciones y deja solo las utiles
 depurar instrucciones microprocesador = filter (instruccionUtil microprocesador) instrucciones
 
-instruccionUtil :: Microprocesador -> Programa -> Bool -- ejecuta una instruccion, convierte en lista lo que nos importa y ve si los valores son distintos de cero
+instruccionUtil :: Microprocesador -> Instrucciones -> Bool -- ejecuta una instruccion, convierte en lista lo que nos importa y ve si los valores son distintos de cero
 instruccionUtil microprocesador instruccion = any (/= 0)(valoresAEvaluar.instruccion $ microprocesador)
 
 valoresAEvaluar :: Microprocesador -> [Int] -- lista con acumulado A,B y memoria 
@@ -136,10 +139,9 @@ valoresAEvaluar microprocesador = [acumuladorA microprocesador, acumuladorB micr
 
 listaOrdenada :: [Int] -> Bool
 listaOrdenada [] = True
-listaOrdenada [x]= True
-listaOrdenada (x:y:ys) 
-   | x <= y = listaOrdenada (y:ys)
-   |otherwise = False
+listaOrdenada [_]= True --ISSUE
+listaOrdenada (x:y:ys) = x <= y && listaOrdenada (y:ys) -- ISSUE
+
 
 memoriaOrdenada :: Microprocesador -> Bool   
 memoriaOrdenada microprocesador = listaOrdenada (memoria microprocesador)
@@ -210,4 +212,3 @@ ejecutarDepuracion = depurar funcionesParaDepurar xt8088
 -- Orden de la memoria
 ejecutarMemoriaOrdenada1 = memoriaOrdenada at8086
 ejecutarMemoriaOrdenada2 = memoriaOrdenada microDesorden
-
